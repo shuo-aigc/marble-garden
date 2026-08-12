@@ -2624,9 +2624,10 @@ function ui(){}
 // is sent, and a failed analytics request never affects gameplay.
 const GAME_ANALYTICS_ENDPOINT='https://marble-garden-events.indrakzone.workers.dev/event';
 const GAME_ANALYTICS_EVENTS=new Set(['mode_clear_start','mode_free_start','shot','level_clear']);
+const GAME_OWNER_TOKEN=(()=>{const match=location.hash.match(/(?:^#|[&])owner=([A-Za-z0-9_-]+)/);if(match){safeStorage.set('marble-owner-analytics-token',match[1]);history.replaceState(null,'',location.pathname+location.search)}return safeStorage.get('marble-owner-analytics-token')||''})();
 function trackGameEvent(event){
   if(!GAME_ANALYTICS_EVENTS.has(event))return;
-  try{fetch(GAME_ANALYTICS_ENDPOINT,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({event}),keepalive:true}).catch(()=>{})}catch{}
+  try{fetch(GAME_ANALYTICS_ENDPOINT,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({event,ownerToken:GAME_OWNER_TOKEN||undefined}),keepalive:true}).catch(()=>{})}catch{}
 }
 let toastTimer=null;
 function say(t){

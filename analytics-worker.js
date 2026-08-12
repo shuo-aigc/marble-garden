@@ -57,6 +57,11 @@ export default {
     if (!ALLOWED_EVENTS.has(payload?.event)) {
       return new Response("Bad request", { status: 400, headers: corsHeaders() });
     }
+    // The site owner can opt their own browser out with a private token. It is
+    // compared only in the Worker and never stored in D1.
+    if (env.OWNER_TOKEN && payload?.ownerToken === env.OWNER_TOKEN) {
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    }
 
     try {
       const day = new Date().toISOString().slice(0, 10);

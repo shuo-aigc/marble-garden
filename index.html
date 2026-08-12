@@ -1013,6 +1013,7 @@ function shatterMarble(b){
       life:0,maxLife:isMain?4+Math.random()*1.4:2.2+Math.random()*.8,bounces:0,settled:false});
   }
   playGlassClink(1); // sharp full-strength break sound, reusing the existing clink synth
+  if(balls.length===0&&!clearGameOver)trackGameEvent('level_clear');
   if(balls.length===0&&!clearGameOver){sayKey('msgClearWin');if(!online?.id)showClearResult(true)}
 }
 function updateShards(dt){
@@ -2619,6 +2620,14 @@ function renderShadowLayerPanel(){
   }));
 }
 function ui(){}
+// Anonymous, aggregate gameplay counters only. No player, device, or network identifier
+// is sent, and a failed analytics request never affects gameplay.
+const GAME_ANALYTICS_ENDPOINT='https://marble-garden-events.indrakzone.workers.dev/event';
+const GAME_ANALYTICS_EVENTS=new Set(['mode_clear_start','mode_free_start','shot','level_clear']);
+function trackGameEvent(event){
+  if(!GAME_ANALYTICS_EVENTS.has(event))return;
+  try{fetch(GAME_ANALYTICS_ENDPOINT,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({event}),keepalive:true}).catch(()=>{})}catch{}
+}
 let toastTimer=null;
 function say(t){
   document.getElementById('msg').textContent=t;
@@ -2741,6 +2750,7 @@ canvas.addEventListener('pointerup',()=>{
     shooter.dropDone=false;shooter.dropVel=650*(1-Math.exp(-spd/220));shooter.bounceCount=0;
     shotsLeft--;updateShotsUI();
     if(online.room?.players?.length===2){online.pending=true;online.live=true}
+    if(!online?.id)trackGameEvent('shot');
     sayKey('msgClearShoot');
     return;
   }
@@ -2835,8 +2845,8 @@ function updateMobileChromeAvoidance(){
 document.getElementById('restart').onclick=()=>{if(!canPlayOnline())return say(roomText());if(gameMode==='clear')setupClearTable();else setup();if(online.id)online.pending=true};
 document.getElementById('mode-free').onclick=()=>{if(online.id)return say('双人房间固定为自由模式');setup();updateModeUI()};
 document.getElementById('mode-clear').onclick=()=>{if(online.id)return say('双人房间固定为自由模式');setupClearTable();updateModeUI()};
-document.getElementById('entry-clear').onclick=()=>{document.getElementById('entry-screen').hidden=true;setupClearTable(currentLevel);updateModeUI()};
-document.getElementById('entry-free').onclick=()=>{document.getElementById('entry-screen').hidden=true;setup();updateModeUI()};
+document.getElementById('entry-clear').onclick=()=>{trackGameEvent('mode_clear_start');document.getElementById('entry-screen').hidden=true;setupClearTable(currentLevel);updateModeUI()};
+document.getElementById('entry-free').onclick=()=>{trackGameEvent('mode_free_start');document.getElementById('entry-screen').hidden=true;setup();updateModeUI()};
 document.getElementById('clear-modal-restart').onclick=()=>setupClearTable();
 document.getElementById('clear-modal-next').onclick=()=>setupClearTable(currentLevel+1);
 document.getElementById('clear-modal-levels').onclick=()=>{document.getElementById('clear-modal').hidden=true;openLevelSelect()};
